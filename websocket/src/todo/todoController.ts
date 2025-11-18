@@ -8,12 +8,31 @@ class Todo {
   constructor() {
     this.io.on("connection", (socket: Socket) => {
       console.log("new client connected!!");
+      socket.on("getTodo", ()=>this.fetchTodos(socket))
       socket.on("addTodo", (data) => this.handleAddTodo(socket, data));
       socket.on("deleteTodo", (data) => this.handleDeleteTodo(socket, data));
-      socket.on("handleUpdateTodoStatus", (data) =>
+      socket.on("updateTodoStatus", (data) =>
         this.handleUpdateTodoStatus(socket, data)
       );
+      socket.on("fetchTodos", () =>
+        this.fetchTodos(socket)
+      );
     });
+  }
+
+  private async fetchTodos(socket: Socket){
+    try{
+      const todos = await todoModal.find({status: Status.Pending})
+      socket.emit("todo_updated",{
+        status: "success",
+        data: todos
+      })
+    }catch(error){
+      socket.emit("todo_response", {
+        status: "error",
+        error,
+      });
+    }
   }
 
   private async handleAddTodo(socket: Socket, data: ITodo) {
@@ -80,7 +99,7 @@ class Todo {
         return;
       }
       const updatedTodos = await todoModal.find({status: Status.Pending})
-      socket.emit("todoUpdate",{
+      socket.emit("todo_Updated",{
         status: "success",
         data: updatedTodos
       })
