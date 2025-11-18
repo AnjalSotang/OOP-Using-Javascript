@@ -10,6 +10,7 @@ import {Server} from 'socket.io'
 //api --event
 //req.body = data
 
+let io:Server | undefined;
 const startServer = () => {
     connectToDB()
     const port = envConfig.port || 4000;
@@ -22,23 +23,16 @@ const startServer = () => {
     //         origin : "http://localhost:5173 "
     //     }
     // })
-
-    const io = new Server(server)
-    io.on('connection', (socket) => {
-        socket.emit("message", {
-            name: "Whats Up"
-        })
-        // socket.on("haha", (data) => {
-        //     console.log(data)
-        //     socket.emit("response",{
-        //         message: "Data Received"
-        //     })
-        //     // io.emit("response",{
-        //     //     message: "Data Received" For all the clients use io
-        //     // })
-        // })
-    })
+    io = new Server(server)
 
 }
 
+function getSocketIo(){
+    if(!io){
+        throw new Error("Socket is not initialized")
+    }
+    return io;  
+}
+
 startServer()
+export {getSocketIo}
