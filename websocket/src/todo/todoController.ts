@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import { getSocketIo } from "../../server";
 import todoModal from "./todoModal";
-import { ITodo } from "./todoTypes";
+import { ITodo, Status } from "./todoTypes";
 
 class Todo {
   private io = getSocketIo();
@@ -10,6 +10,9 @@ class Todo {
       console.log("new client connected!!");
       socket.on("addTodo", (data) => this.handleAddTodo(socket, data));
       socket.on("deleteTodo", (data) => this.handleDeleteTodo(socket, data));
+      socket.on("handleUpdateTodoStatus", (data) =>
+        this.handleUpdateTodoStatus(socket, data)
+      );
     });
   }
 
@@ -22,7 +25,7 @@ class Todo {
         status,
       });
 
-      const todos = await todoModal.find();
+      const todos = await todoModal.find({status: Status.Pending});
 
       socket.emit("todo_updated", {
         status: "success",
@@ -43,17 +46,46 @@ class Todo {
       if (!deleteTodo) {
         socket.emit("tedo_response", {
           status: "error",
-          message: "To not Found"
+          message: "To not Found",
         });
         return;
       }
-      const todos = await todoModal.find();
+      const todos = await todoModal.find({status: Status.Pending});
       socket.emit("todo_updated", {
-        message: "Deleted Successfully",
+        status: "Success",
         data: todos,
       });
     } catch (error) {
       socket.emit("tedo_response", {
+        status: "Success",
+        error,
+      });
+    }
+  }
+
+  private async handleUpdateTodoStatus(
+    socket: Socket,
+    data: { id: string; status: Status }
+  ) {
+    try {
+      const { id, status } = data;
+      const toDo = await todoModal.findByIdAndUpdate(id, {
+        status
+      },{new: true})
+      if(!toDo){
+        socket.emit("todoResponse", {
+            status: "error",
+            message: "Status Update Unsuccessful"
+        })
+        return;
+      }
+      const updatedTodos = await todoModal.find({status: Status.Pending})
+      socket.emit("todoUpdate",{
+        status: "success",
+        data: updatedTodos
+      })
+    } catch (error) {
+      socket.emit("todoRespone", {
         status: "error",
         error,
       });
